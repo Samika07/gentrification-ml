@@ -1,0 +1,5 @@
+Model,Best Params,Accuracy,Precision,Recall,F1 Score,ROC-AUC
+Logistic Regression,"{'C': 10.0, 'class_weight': None, 'solver': 'liblinear'}",0.5818181818181818,0.16666666666666666,0.0015082956259426848,0.0029895366218236174,0.5485292499304113
+Support Vector Machine,"{'C': 10, 'class_weight': 'balanced', 'kernel': 'rbf'}",0.48589341692789967,0.4299732381801962,0.726998491704374,0.5403587443946188,0.5453314042685413
+Random Forest,"{'class_weight': None, 'max_depth': 10, 'min_samples_split': 5, 'n_estimators': 50}",0.645141065830721,0.6336088154269972,0.3469079939668175,0.44834307992202727,0.6568400882967912
+XGBoost,"{'learning_rate': 0.01, 'max_depth': 3, 'n_estimators': 200, 'scale_pos_weight': 1}",0.6545454545454545,0.6386138613861386,0.3891402714932127,0.4835988753514527,0.6834100427889875
