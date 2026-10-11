@@ -1,0 +1,9 @@
+Feature,Mean_Absolute_SHAP
+affordability_pressure,0.4645886
+rent_change_pct,0.2696528
+home_value_change_pct,0.19975081
+population_change_pct,0.14459991
+income_change_pct,0.13269185
+housing_units_change_pct,0.12589526
+median_age_change,0.12153119
+poverty_change,0.099726446
