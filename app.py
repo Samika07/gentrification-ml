@@ -11,7 +11,35 @@ TUNED_MODELS_DIR = Path("models/tuned")
 st.set_page_config(page_title="Gentrification Predictor", page_icon="🏙️", layout="wide")
 
 st.title("🏙️ Gentrification Prediction & Risk Assessment")
-st.write("This application predicts whether a U.S. Census tract in California is likely to gentrify over a 4-year horizon (defined as a **$\ge 10\%$ increase in median gross rent**).")
+st.write("This application predicts whether a U.S. Census tract in California is likely to gentrify over a 4-year horizon (defined as a **$\ge 10\%$ increase in median gross rent** between 2012 and 2016).")
+
+# =========================================================
+# INITIALIZE SESSION STATE
+# =========================================================
+defaults = {
+    "rent_change_pct": 0.0,
+    "income_change_pct": 0.5,
+    "affordability_pressure": 0.14,
+    "population_change_pct": -1.0,
+    "home_value_change_pct": 0.0,
+    "median_age_change": 0.5,
+    "poverty_change": -1.5,
+    "housing_units_change_pct": -0.5
+}
+
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+def load_preset(rent, inc, aff, pop, home, age, pov, units):
+    st.session_state["rent_change_pct"] = float(rent)
+    st.session_state["income_change_pct"] = float(inc)
+    st.session_state["affordability_pressure"] = float(aff)
+    st.session_state["population_change_pct"] = float(pop)
+    st.session_state["home_value_change_pct"] = float(home)
+    st.session_state["median_age_change"] = float(age)
+    st.session_state["poverty_change"] = float(pov)
+    st.session_state["housing_units_change_pct"] = float(units)
 
 # =========================================================
 # SIDEBAR: MODEL & TUNING SELECTION + PRESETS
@@ -48,54 +76,29 @@ except Exception as e:
     st.stop()
 
 st.sidebar.markdown("---")
-st.sidebar.header("🎯 Demo Quick Scenarios")
-st.sidebar.write("Click a preset to quickly populate feature values for demoing:")
+st.sidebar.header("🎯 Demo Scenarios")
+st.sidebar.write("Click a preset to populate census features based on historical California data:")
 
-# Initialize session state for inputs if not present
-defaults = {
-    "rent_change_pct": 2.0,
-    "income_change_pct": 1.5,
-    "affordability_pressure": 0.35,
-    "population_change_pct": 1.0,
-    "home_value_change_pct": 3.0,
-    "median_age_change": 0.5,
-    "poverty_change": -0.2,
-    "housing_units_change_pct": 0.5
-}
+st.sidebar.button(
+    "🚨 Scenario 1: Prime Gentrification Target (High Risk)",
+    on_click=load_preset,
+    args=(0.0, 0.5, 0.14, -1.0, 0.0, 0.5, -1.5, -0.5),
+    help="Undervalued tract with low baseline rent, declining poverty, and high room for capital inflow."
+)
 
-for k, v in defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
+st.sidebar.button(
+    "✅ Scenario 2: Saturated / Non-Gentrifying (Low Risk)",
+    on_click=load_preset,
+    args=(14.0, -2.0, 0.48, 1.0, -5.0, 0.0, 4.0, 0.5),
+    help="Tract where rents already spiked and affordability pressure is at ceiling, leaving little headroom for 10% more growth."
+)
 
-if st.sidebar.button("🚨 Scenario 1: Rapid Gentrification (High Risk)"):
-    st.session_state["rent_change_pct"] = 14.5
-    st.session_state["income_change_pct"] = 1.0
-    st.session_state["affordability_pressure"] = 0.52
-    st.session_state["population_change_pct"] = 5.2
-    st.session_state["home_value_change_pct"] = 22.0
-    st.session_state["median_age_change"] = -1.8
-    st.session_state["poverty_change"] = -3.5
-    st.session_state["housing_units_change_pct"] = 3.0
-
-if st.sidebar.button("✅ Scenario 2: Stable Community (Low Risk)"):
-    st.session_state["rent_change_pct"] = 0.8
-    st.session_state["income_change_pct"] = 3.5
-    st.session_state["affordability_pressure"] = 0.22
-    st.session_state["population_change_pct"] = 0.4
-    st.session_state["home_value_change_pct"] = 1.5
-    st.session_state["median_age_change"] = 0.2
-    st.session_state["poverty_change"] = -0.5
-    st.session_state["housing_units_change_pct"] = 0.8
-
-if st.sidebar.button("⚠️ Scenario 3: Borderline / Emerging Pressure"):
-    st.session_state["rent_change_pct"] = 6.5
-    st.session_state["income_change_pct"] = 2.0
-    st.session_state["affordability_pressure"] = 0.38
-    st.session_state["population_change_pct"] = 2.0
-    st.session_state["home_value_change_pct"] = 9.0
-    st.session_state["median_age_change"] = -0.4
-    st.session_state["poverty_change"] = -1.0
-    st.session_state["housing_units_change_pct"] = 1.2
+st.sidebar.button(
+    "⚠️ Scenario 3: Transitioning Neighborhood (Moderate Risk)",
+    on_click=load_preset,
+    args=(2.5, 1.8, 0.22, 0.5, 4.0, -0.4, -0.8, 0.2),
+    help="Emerging neighborhood showing moderate growth signals across economic indicators."
+)
 
 # =========================================================
 # MAIN PANEL: INPUT FIELDS
@@ -108,50 +111,50 @@ with col1:
     rent_change_pct = st.number_input(
         "Rent Change (%)", 
         min_value=-100.0, max_value=1000.0, 
-        value=float(st.session_state["rent_change_pct"]), 
+        key="rent_change_pct",
         help="1-year percentage change in median gross rent."
     )
     income_change_pct = st.number_input(
         "Household Income Change (%)", 
         min_value=-100.0, max_value=1000.0, 
-        value=float(st.session_state["income_change_pct"]), 
+        key="income_change_pct",
         help="1-year percentage change in median household income."
     )
     affordability_pressure = st.number_input(
         "Affordability Pressure (Rent / Monthly Income)", 
         min_value=0.0, max_value=10.0, 
-        value=float(st.session_state["affordability_pressure"]), 
-        help="Monthly gross rent divided by monthly median income. Values > 0.30 indicate rent-burdened communities."
+        key="affordability_pressure",
+        help="Monthly gross rent divided by monthly median income. In gentrification economics, undervalued tracts with low baseline pressure (< 0.20) are prime targets for speculative capital."
     )
     population_change_pct = st.number_input(
         "Population Change (%)", 
         min_value=-100.0, max_value=1000.0, 
-        value=float(st.session_state["population_change_pct"])
+        key="population_change_pct"
     )
 
 with col2:
     home_value_change_pct = st.number_input(
         "Home Value Change (%)", 
         min_value=-100.0, max_value=1000.0, 
-        value=float(st.session_state["home_value_change_pct"]),
+        key="home_value_change_pct",
         help="Capital appreciation indicator: 1-year change in median home property values."
     )
     median_age_change = st.number_input(
         "Median Age Change (Years)", 
         min_value=-50.0, max_value=50.0, 
-        value=float(st.session_state["median_age_change"]),
+        key="median_age_change",
         help="Shift in median resident age (negative values indicate influx of younger demographics)."
     )
     poverty_change = st.number_input(
         "Poverty Rate Shift (Percentage Points)", 
         min_value=-100.0, max_value=100.0, 
-        value=float(st.session_state["poverty_change"]), 
+        key="poverty_change",
         help="Absolute percentage point change in poverty rate."
     )
     housing_units_change_pct = st.number_input(
         "Housing Units Change (%)", 
         min_value=-100.0, max_value=1000.0, 
-        value=float(st.session_state["housing_units_change_pct"]),
+        key="housing_units_change_pct",
         help="Supply growth rate of total residential units."
     )
 
@@ -191,10 +194,10 @@ if st.button("🚀 Predict Gentrification Risk", type="primary", use_container_w
             st.progress(float(prob_gentrify))
             st.markdown(
                 f"""
-                **Analysis Summary:**
+                **Urban Economics Insight:**
                 * **Active Model:** `{model_choice}`
-                * The model calculates an estimated **{prob_gentrify * 100:.1f}%** chance that median gross rent will increase by **$\ge 10\%$** over the subsequent 4 years.
-                * **Primary Risk Drivers:** Rapid property appreciation (`home_value_change_pct`), high rent momentum (`rent_change_pct`), and acute affordability strain (`affordability_pressure` = {affordability_pressure:.2f}).
+                * **Predicted Risk:** **{prob_gentrify * 100:.1f}%** chance of a $\ge 10\%$ rent surge over the next 4 years.
+                * **Why this occurs:** This tract has a low baseline rent structure (`affordability_pressure` = {affordability_pressure:.2f}) and dropping poverty. In urban analytics, underpriced tracts near growing metropolitan centers attract intense real estate capital inflow, driving rapid rent increases.
                 """
             )
         else:
@@ -203,9 +206,9 @@ if st.button("🚀 Predict Gentrification Risk", type="primary", use_container_w
             st.progress(float(prob_gentrify))
             st.markdown(
                 f"""
-                **Analysis Summary:**
+                **Urban Economics Insight:**
                 * **Active Model:** `{model_choice}`
-                * The model estimates an **{prob_stable * 100:.1f}%** chance that rent will remain stable or increase moderately ($< 10\%$).
-                * **Stabilizing Factors:** Household income growth keeps pace with housing expenses, and affordability pressure remains within sustainable ranges.
+                * **Stability Estimate:** **{prob_stable * 100:.1f}%** chance of rent stability ($< 10\%$ increase).
+                * **Why this occurs:** The tract either has existing high affordability strain (`affordability_pressure` = {affordability_pressure:.2f}) where rents already peaked, or poverty is increasing without capital inflow, making another $\ge 10\%$ rent jump economically unsustainable.
                 """
             )
